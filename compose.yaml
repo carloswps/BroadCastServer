@@ -1,0 +1,7 @@
+﻿services:
+  broadcastserver:
+    image: broadcastserver
+    build:
+      context: .
+      dockerfile: BroadcastServer/Dockerfile
+
