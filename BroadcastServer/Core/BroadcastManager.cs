@@ -7,16 +7,19 @@ public class BroadcastManager
 {
     private readonly ConcurrentDictionary<Guid, ClientHandler> _client = new();
 
-    public void Add(Guid id, ClientHandler client)
+    public void AddClient(Guid id, ClientHandler client)
     {
-        if (_client.ContainsKey(id)) return;
-        _client.TryAdd(id, client);
+        if (_client.TryAdd(id, client)) Console.WriteLine($"[LOG] Client {id} added to the list.");
     }
 
     public void RemoveClient(Guid id)
     {
-        if (!_client.ContainsKey(id)) return;
-        _client.TryRemove(id, out _);
+        if (_client.TryRemove(id, out _)) Console.WriteLine($"[LOG] Client {id} removed from the list.");
+    }
+
+    public int GetConnectedClients()
+    {
+        return _client.Count;
     }
 
     public async Task BroadcastAsync(string message, Guid guidClient)
@@ -27,5 +30,15 @@ public class BroadcastManager
             .Select(x => x.Value.SendAsync(data));
 
         await Task.WhenAll(task);
+    }
+
+    public async Task BroadcastMessageAsync(string message, Guid? excludeId = null)
+    {
+        var data = Encoding.UTF8.GetBytes($"[BROADCAST] {message}");
+        var tasks = _client
+            .Where(x => x.Key != excludeId)
+            .Select(x => x.Value.SendAsync(data));
+
+        await Task.WhenAll(tasks);
     }
 }

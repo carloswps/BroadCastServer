@@ -1,7 +1,15 @@
 using BroadcastServer.Core;
+using BroadcastServer.Utils.UI;
 using Spectre.Console;
 
-AnsiConsole.Write(new FigletText("Broadcast Server").Centered().Color(Color.Green));
+AnsiConsole.Clear();
+AnsiConsole.Write(
+    new FigletText("Broadcast Server")
+        .Centered()
+        .Color(Color.Cyan1)
+);
+
+AnsiConsole.Write(new Rule("[bold green]Broadcast Server[/]").RuleStyle("green").Centered());
 
 var port = 5000;
 var server = new ServerHost(port);
@@ -15,7 +23,8 @@ await AnsiConsole.Status()
         AnsiConsole.WriteLine($"Server started on port {port}");
     });
 
-AnsiConsole.MarkupLine($"[green]Server ON.[/] listening at the port [bold]{port}[/]");
-AnsiConsole.MarkupLine("Press [bold]CTRL+C[/] to exit.");
+Logger.Success("Server started!");
+Logger.Info("Press Ctrl+C to exit...");
+AnsiConsole.WriteLine();
 
 await Task.Delay(-1);

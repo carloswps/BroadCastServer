@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Sockets;
+using BroadcastServer.Utils.UI;
 
 namespace BroadcastServer.Core;
 
@@ -19,24 +20,24 @@ public class ServerHost
     {
         _listener.Start();
         _isRunning = true;
-        Console.WriteLine("Server started and listening...");
+        Logger.Success("Server started!");
 
         try
         {
             while (_isRunning)
             {
                 var client = await _listener.AcceptTcpClientAsync();
-                Console.WriteLine($"[LOG] A new client connected: {client.Client.RemoteEndPoint}");
-
-                var handler = new ClientHandler(client, _manager);
                 var clientId = Guid.NewGuid();
-                _manager.Add(clientId, handler);
+                Logger.Info($"Client {clientId} connected.");
+
+                var handler = new ClientHandler(client, _manager, clientId);
+                _manager.AddClient(clientId, handler);
                 _ = handler.RunAsync();
             }
         }
         catch (Exception e)
         {
-            Console.WriteLine($"[ERROR] Error: {e.Message}");
+            Logger.Error(e.Message);
         }
     }
 }
