@@ -14,9 +14,16 @@ public static class Logger
         AnsiConsole.MarkupLine($"[bold blue][[[/][bold blue]INFO[/][bold blue]]][/] {message}");
     }
 
-    public static void Error(string message)
+    public static void Error(string message, Exception? error)
     {
-        AnsiConsole.MarkupLine($"[bold red][[[/][bold red]ERRO[/][bold red]]][/] {message}");
+        if (error == null) return;
+        var panel = new Panel(
+                $"{Markup.Escape(error.Message)}{Environment.NewLine}[grey]({error.GetType().Name})[/]")
+            .Header($"[bold red][[[/][bold red]ERRO[/][bold red]]][/] {message}")
+            .BorderColor(Color.Red)
+            .Expand();
+
+        AnsiConsole.Write(panel);
     }
 
     public static void Broadcast(string message, string user)

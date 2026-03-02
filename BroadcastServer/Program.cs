@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using BroadcastServer.Core;
+using BroadcastServer.Models;
+using BroadcastServer.Services;
 using BroadcastServer.Utils.UI;
 using Microsoft.Extensions.Configuration;
 using Spectre.Console;
@@ -21,11 +22,19 @@ var config = new ConfigurationBuilder()
 
 var hubUrl = config["SignalR:HubUrl"];
 var apiUrl = config["SignalR:ApiUrl"];
-if (string.IsNullOrWhiteSpace(apiUrl)) throw new Exception("SignalR API URL is required!");
-if (string.IsNullOrWhiteSpace(hubUrl)) throw new Exception("SignalR Hub URL is required!");
+if (string.IsNullOrWhiteSpace(apiUrl) || string.IsNullOrWhiteSpace(hubUrl))
+{
+    Logger.Error("SignalR API URL is not configured in appsettings.json", null);
+    return;
+}
 
 var jwtToken = AnsiConsole.Ask<string?>("Send you [bold cyan]Token JWT[/] for you connection");
-if (string.IsNullOrWhiteSpace(jwtToken)) throw new Exception("Token JWT is required!");
+if (string.IsNullOrWhiteSpace(jwtToken))
+{
+    Logger.Error("A JWT Token is required to connect.", null);
+    return;
+}
+
 var signalRUrl = new SignalRClient(hubUrl, jwtToken);
 
 await AnsiConsole.Status()
@@ -46,7 +55,7 @@ while (true)
         var targetUserId = '1';
         var url = $"{apiUrl}/send-message/{targetUserId}";
 
-        var dto = new
+        var dto = new SendMessageDto
         {
             Tittle = "CLI Notification",
             Message = input
@@ -59,7 +68,7 @@ while (true)
         if (response.IsSuccessStatusCode)
             Logger.Success("Message sent!");
         else
-            Logger.Error("Error sending message!");
+            Logger.Error("Error sending message!", null);
     }
 }
 
