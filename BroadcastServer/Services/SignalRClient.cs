@@ -65,16 +65,4 @@ public class SignalRClient
             throw;
         }
     }
-
-    public async Task SendMessageAsync(string user, string message)
-    {
-        try
-        {
-            await _connection.InvokeAsync("SendMessage", user, message);
-        }
-        catch (Exception e)
-        {
-            Logger.Error("Error sending message: ", new Exception(e.Message));
-        }
-    }
 }

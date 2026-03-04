@@ -6,7 +6,7 @@ namespace BroadcastServer.Services;
 public class AuthService(string baseUrl)
 {
     private readonly HttpClient _httpClient = new();
-    private readonly string _loginUrl = $"{baseUrl}/api/auth/login";
+    private readonly string _loginUrl = $"{baseUrl}/login-users/login";
 
     public async Task<string?> LoginAsync(string email, string password)
     {

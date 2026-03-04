@@ -28,11 +28,27 @@ if (string.IsNullOrWhiteSpace(apiUrl) || string.IsNullOrWhiteSpace(hubUrl))
     return;
 }
 
-var jwtToken = AnsiConsole.Ask<string?>("Send you [bold cyan]Token JWT[/] for you connection");
-if (string.IsNullOrWhiteSpace(jwtToken))
+var authService = new AuthService(apiUrl);
+string? jwtToken = null;
+
+while (string.IsNullOrWhiteSpace(jwtToken))
 {
-    Logger.Error("A JWT Token is required to connect.", null);
-    return;
+    AnsiConsole.Clear();
+    AnsiConsole.Write(new FigletText("Broadcast CLI").Color(Color.Cyan1));
+    AnsiConsole.Write(new Rule("[bold green]Authentication is required[/]").RuleStyle("red").Centered());
+    AnsiConsole.WriteLine();
+
+    var email = AnsiConsole.Prompt(new TextPrompt<string>("[white]Email[/] [grey]>[/]").PromptStyle("red")
+        .ValidationErrorMessage("Email is required").Validate(email => email.Contains('@')));
+    var password =
+        AnsiConsole.Prompt(new TextPrompt<string>("🔑 [white]Senha:[/]").PromptStyle("red").Secret());
+
+    await AnsiConsole.Status()
+        .StartAsync("Authenticating...", async ctx =>
+        {
+            jwtToken = await authService.LoginAsync(email, password);
+            if (jwtToken == null) AnsiConsole.MarkupLine("[red]❌ Error.[/]");
+        });
 }
 
 var signalRUrl = new SignalRClient(hubUrl, jwtToken);
