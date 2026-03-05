@@ -1,7 +1,5 @@
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
-using BroadcastServer.Models;
 using BroadcastServer.Services;
+using BroadcastServer.Utils;
 using BroadcastServer.Utils.UI;
 using Microsoft.Extensions.Configuration;
 using Spectre.Console;
@@ -47,44 +45,68 @@ while (string.IsNullOrWhiteSpace(jwtToken))
         .StartAsync("Authenticating...", async ctx =>
         {
             jwtToken = await authService.LoginAsync(email, password);
-            if (jwtToken == null) AnsiConsole.MarkupLine("[red]❌ Error.[/]");
+            if (jwtToken == null)
+            {
+                AnsiConsole.MarkupLine("[red]❌ Login failed. Please check your credentials.[/]");
+                await Task.Delay(2000);
+            }
         });
 }
 
-var signalRUrl = new SignalRClient(hubUrl, jwtToken);
+var currentUserId = JwtParser.GetUserIdFromToken(jwtToken!);
+var signalR = new SignalRClient(hubUrl, jwtToken, currentUserId);
 
 await AnsiConsole.Status()
     .Spinner(Spinner.Known.Dots)
-    .StartAsync("Starting server...", async ctx => { await signalRUrl.StartAsync(); });
+    .StartAsync("Starting server...", async ctx => { await signalR.StartAsync(); });
 
-Logger.Info("Server connected send messages to clients!");
-AnsiConsole.MarkupLine("[bold green]Press CTRL+C to exit[/]");
-AnsiConsole.WriteLine();
+AnsiConsole.Write(new Rule("[bold green]Chat[/]").RuleStyle("green").Centered());
+
+AnsiConsole.MarkupLine($"[bold grey]✅ Connected to Chat as User {currentUserId}![/]");
+
+int? targetUserId = null;
 
 while (true)
 {
-    var input = AnsiConsole.Ask<string>("[bold yellow]Message >[/]");
-    if (input?.ToLower() == "exit") break;
-
-    if (!string.IsNullOrWhiteSpace(input))
+    if (targetUserId == null)
     {
-        var targetUserId = '1';
-        var url = $"{apiUrl}/send-message/{targetUserId}";
+        targetUserId = AnsiConsole.Prompt(
+            new TextPrompt<int>("👤 [bold yellow]Enter Target User ID to chat (or 0 to exit):[/]")
+                .ValidationErrorMessage("[red]Please enter a valid numeric ID![/]")
+        );
 
-        var dto = new SendMessageDto
-        {
-            Tittle = "CLI Notification",
-            Message = input
-        };
+        if (targetUserId == 0) break;
 
-        using var client = new HttpClient();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", jwtToken);
+        await signalR.JoinPrivateChatAsync(targetUserId.Value);
+        AnsiConsole.MarkupLine($"[bold grey]✅ Switched chat to User {targetUserId}![/]");
+        AnsiConsole.MarkupLine(
+            "[grey]Type your message and press Enter. Type '/exit' to quit or '/target' to change user.[/]\n");
+    }
 
-        var response = await client.PostAsJsonAsync(url, dto);
-        if (response.IsSuccessStatusCode)
-            Logger.Success("Message sent!");
-        else
-            Logger.Error("Error sending message!", null);
+    var input = AnsiConsole.Prompt(
+        new TextPrompt<string>($"[bold yellow]Message (to {targetUserId}) >[/]")
+            .AllowEmpty());
+
+    if (string.IsNullOrWhiteSpace(input)) continue;
+
+    var cmd = input.ToLower().Trim();
+    if (cmd == "/exit" || cmd == "exit") break;
+    if (cmd == "/target")
+    {
+        targetUserId = null;
+        continue;
+    }
+
+    try
+    {
+        await signalR.SendMessageAsync(targetUserId.Value, input);
+
+        Console.SetCursorPosition(0, Console.CursorTop - 1);
+        Console.Write(new string(' ', Console.WindowWidth) + "\r");
+    }
+    catch (Exception ex)
+    {
+        Logger.Error("Failed to send message", ex);
     }
 }
 

@@ -32,4 +32,33 @@ public static class Logger
         AnsiConsole.MarkupLine(
             $"[bold yellow][[[/][bold yellow]MSG[/][bold yellow]]][/] [underline]{user}[/]: {escapedMessage}");
     }
+
+    public static void ChatMessage(string user, string message, int timestamp, bool isMe = false)
+    {
+        if (string.IsNullOrWhiteSpace(user) || string.IsNullOrWhiteSpace(message)) return;
+
+        var color = isMe ? Color.Cyan1 : Color.Green;
+
+        // Timestamp formating
+        var timeStr = timestamp > 24
+            ? DateTimeOffset.FromUnixTimeSeconds(timestamp).ToLocalTime().ToString("HH:mm")
+            : $"{timestamp:D2}:00";
+
+        var panel = new Panel(Markup.Escape(message))
+        {
+            Header = new PanelHeader($"[bold {color.ToMarkup()}] {user} [/] [grey]{timeStr}[/]"),
+            Border = BoxBorder.Rounded,
+            BorderStyle = color,
+            Padding = new Padding(1, 0, 1, 0)
+        };
+
+        var alignment = isMe ? HorizontalAlignment.Right : HorizontalAlignment.Left;
+
+        var renderable = new Padder(
+            new Align(panel, alignment),
+            new Padding(isMe ? 10 : 0, 0, isMe ? 0 : 10, 0)
+        );
+
+        AnsiConsole.Write(renderable);
+    }
 }
