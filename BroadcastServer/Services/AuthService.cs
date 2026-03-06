@@ -3,9 +3,9 @@ using BroadcastServer.Models;
 
 namespace BroadcastServer.Services;
 
-public class AuthService(string baseUrl)
+public class AuthService(string baseUrl, HttpClient? httpClient = null)
 {
-    private readonly HttpClient _httpClient = new();
+    private readonly HttpClient _httpClient = httpClient ?? new HttpClient();
     private readonly string _loginUrl = $"{baseUrl}/login-users/login";
 
     public async Task<string?> LoginAsync(string email, string password)
